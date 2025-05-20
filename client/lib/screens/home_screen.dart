@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:async';
+import '../widgets/add_report_modal.dart';
+import '../widgets/add_camera_modal.dart';
+import 'home_screen_quick_actions.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -9,12 +12,16 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   late Timer _timer;
   DateTime _currentTime = DateTime.now();
   
   // For segmented control
   int _selectedStatView = 0;
+  
+  // For animation
+  late AnimationController _animationController;
+  late Animation<double> _slideAnimation;
 
   @override
   void initState() {
@@ -24,11 +31,27 @@ class _HomeScreenState extends State<HomeScreen> {
         _currentTime = DateTime.now();
       });
     });
+    
+    // Initialize animations
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    
+    _slideAnimation = Tween<double>(begin: 30, end: 0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+    
+    _animationController.forward();
   }
 
   @override
   void dispose() {
     _timer.cancel();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -48,278 +71,359 @@ class _HomeScreenState extends State<HomeScreen> {
     return '${days[time.weekday - 1]}, ${months[time.month - 1]} ${time.day}, ${time.year}';
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return CupertinoScrollbar(
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            
-            // Header Section with iOS-style
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Good Morning',
-                      style: TextStyle(
-                        fontFamily: '.SF Pro Display',
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: CupertinoColors.black,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    Text(
-                      'Admin Dashboard',
-                      style: TextStyle(
-                        fontFamily: '.SF Pro Text',
-                        fontSize: 16,
-                        color: CupertinoColors.systemGrey,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    // iOS-style notification button
-                    CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: () {},
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          const Icon(
-                            CupertinoIcons.bell,
-                            size: 26,
-                            color: CupertinoColors.black,
-                          ),
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: CupertinoColors.systemRed,
-                                shape: BoxShape.circle,
-                              ),
-                              constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
-                              ),
-                              child: const Text(
-                                '3',
-                                style: TextStyle(
-                                  fontFamily: '.SF Pro Text',
-                                  color: CupertinoColors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // iOS-style profile avatar
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE3F553),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: CupertinoColors.systemGrey5,
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Text(
-                          'AD',
-                          style: TextStyle(
-                            fontFamily: '.SF Pro Text',
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF444444),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            
-            // Date and Time Section
-            _buildTimeCard(),
-            const SizedBox(height: 24),
-            
-            // Statistics Header with Segmented Control
-            Row(
-              children: [
-                Text(
-                  'Statistics',
-                  style: TextStyle(
-                    fontFamily: '.SF Pro Display',
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: CupertinoColors.black,
-                  ),
-                ),
-                const Spacer(),
-                // iOS-style segmented control
-                SizedBox(
-                  width: 180,
-                  child: CupertinoSlidingSegmentedControl<int>(
-                    backgroundColor: CupertinoColors.systemGrey6,
-                    thumbColor: CupertinoColors.white,
-                    groupValue: _selectedStatView,
-                    onValueChanged: (int? value) {
-                      setState(() {
-                        _selectedStatView = value!;
-                      });
-                    },
-                    children: const {
-                      0: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text('Daily'),
-                      ),
-                      1: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text('Weekly'),
-                      ),
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            // Statistics Cards
-            Row(
-              children: [
-                Expanded(
-                  child: _buildIOSStatCard(
-                    icon: CupertinoIcons.videocam_fill,
-                    iconColor: CupertinoColors.activeBlue,
-                    count: '12',
-                    label: 'Active CCTVs',
-                    change: '+2 today',
-                    changeColor: CupertinoColors.activeGreen,
-                    uptime: '95% uptime',
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildIOSStatCard(
-                    icon: CupertinoIcons.exclamationmark_triangle_fill,
-                    iconColor: CupertinoColors.systemOrange,
-                    count: '8',
-                    label: 'Active Reports',
-                    change: '+3 today',
-                    changeColor: CupertinoColors.systemRed,
-                    uptime: '+25% from last week',
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            
-            // Live Preview Section
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Live Preview',
-                  style: TextStyle(
-                    fontFamily: '.SF Pro Display',
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: CupertinoColors.black,
-                  ),
-                ),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'View All',
-                        style: TextStyle(
-                          fontFamily: '.SF Pro Text',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: CupertinoColors.activeBlue,
-                        ),
-                      ),
-                      const Icon(
-                        CupertinoIcons.chevron_right,
-                        size: 14,
-                        color: CupertinoColors.activeBlue,
-                      ),
-                    ],
-                  ),
-                  onPressed: () {},
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            // CCTV Preview Card
-            _buildCCTVPreviewCard(),
-            const SizedBox(height: 16),
-            
-            // CCTV Details Card
-            _buildCCTVDetailsCard(),
-            const SizedBox(height: 24),
-            
-            // Quick Actions Section
-            Text(
-              'Quick Actions',
-              style: TextStyle(
-                fontFamily: '.SF Pro Display',
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: CupertinoColors.black,
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Quick Action Buttons - iOS Style
-            _buildQuickActionsGrid(),
-            
-            const SizedBox(height: 100), // Bottom padding for navigation bar
-          ],
+  // Show Add Report Modal
+  void _showAddReportModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          child: AddReportModal(
+            onSubmit: (data) {
+              // Handle form submission
+              // In real app, would save to database
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Report added successfully!')),
+              );
+            },
+          ),
         ),
       ),
     );
   }
 
-  // iOS-style Time Card
+  // Show Add Camera Modal
+  void _showAddCameraModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          child: AddCameraModal(
+            onSubmit: (data) {
+              // Handle form submission
+              // In real app, would save to database
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Camera added successfully!')),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scrollbar(
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: AnimatedBuilder(
+          animation: _animationController,
+          builder: (context, child) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                
+                // Header Section
+                Transform.translate(
+                  offset: Offset(0, _slideAnimation.value),
+                  child: Opacity(
+                    opacity: _animationController.value,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Good Morning',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF444444),
+                              ),
+                            ),
+                            Text(
+                              'Admin Dashboard',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Stack(
+                              children: [
+                                IconButton(
+                                  onPressed: () {},
+                                  icon: const Icon(
+                                    Icons.notifications_outlined,
+                                    color: Color(0xFF444444),
+                                    size: 28,
+                                  ),
+                                ),
+                                Positioned(
+                                  right: 8,
+                                  top: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Text(
+                                      '3',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(width: 8),
+                            CircleAvatar(
+                              backgroundColor: const Color(0xFFE3F553),
+                              child: const Text(
+                                'AD',
+                                style: TextStyle(
+                                  color: Color(0xFF444444),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Date and Time Section with animation
+                Transform.translate(
+                  offset: Offset(0, _slideAnimation.value * 0.8),
+                  child: Opacity(
+                    opacity: _animationController.value,
+                    child: _buildTimeCard(),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Statistics Header with Segmented Control
+                Transform.translate(
+                  offset: Offset(0, _slideAnimation.value * 0.6),
+                  child: Opacity(
+                    opacity: _animationController.value,
+                    child: Row(
+                      children: [
+                        const Text(
+                          'Statistics',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF444444),
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: SegmentedButton<int>(
+                            segments: const [
+                              ButtonSegment<int>(
+                                value: 0,
+                                label: Text('Daily'),
+                                icon: Icon(Icons.calendar_today),
+                              ),
+                              ButtonSegment<int>(
+                                value: 1,
+                                label: Text('Weekly'),
+                                icon: Icon(Icons.date_range),
+                              ),
+                            ],
+                            selected: {_selectedStatView},
+                            onSelectionChanged: (Set<int> selected) {
+                              setState(() {
+                                _selectedStatView = selected.first;
+                              });
+                            },
+                            style: ButtonStyle(
+                              backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                                (states) {
+                                  if (states.contains(MaterialState.selected)) {
+                                    return const Color(0xFFE3F553);
+                                  }
+                                  return Colors.transparent;
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Statistics Cards
+                Transform.translate(
+                  offset: Offset(0, _slideAnimation.value * 0.4),
+                  child: Opacity(
+                    opacity: _animationController.value,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatCard(
+                            icon: Icons.videocam,
+                            iconColor: Colors.blue,
+                            count: '12',
+                            label: 'Active CCTVs',
+                            change: '+2 today',
+                            changeColor: Colors.green,
+                            uptime: '95% uptime',
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildStatCard(
+                            icon: Icons.warning,
+                            iconColor: Colors.amber,
+                            count: '8',
+                            label: 'Active Reports',
+                            change: '+3 today',
+                            changeColor: Colors.red,
+                            uptime: '+25% from last week',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Live Preview Section
+                Transform.translate(
+                  offset: Offset(0, _slideAnimation.value * 0.2),
+                  child: Opacity(
+                    opacity: _animationController.value,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Live Preview',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF444444),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => context.push('/camera/1'),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'View All',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF444444),
+                                ),
+                              ),
+                              Icon(
+                                Icons.arrow_forward_ios,
+                                size: 14,
+                                color: Color(0xFF444444),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // CCTV Preview Card
+                Opacity(
+                  opacity: _animationController.value,
+                  child: _buildCCTVPreviewCard(),
+                ),
+                const SizedBox(height: 16),
+                
+                // CCTV Details Card
+                Opacity(
+                  opacity: _animationController.value,
+                  child: _buildCCTVDetailsCard(),
+                ),
+                const SizedBox(height: 24),
+                
+                // Quick Actions Section
+                Opacity(
+                  opacity: _animationController.value,
+                  child: const Text(
+                    'Quick Actions',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF444444),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Quick Action Buttons - With improved design from the separate file
+                Opacity(
+                  opacity: _animationController.value,
+                  child: buildQuickActionsGrid(
+                    onViewCCTVs: () => context.push('/main'),
+                    onReports: () => context.push('/main'),
+                    onAddCCTV: _showAddCameraModal,
+                    onAddReport: _showAddReportModal,
+                  ),
+                ),
+                
+                const SizedBox(height: 100), // Bottom padding for navigation bar
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  // Time Card
   Widget _buildTimeCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: CupertinoColors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: CupertinoColors.systemGrey5,
-            blurRadius: 10,
-            spreadRadius: 0,
-            offset: const Offset(0, 2),
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 5,
           ),
         ],
       ),
@@ -332,36 +436,36 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 'Today',
                 style: TextStyle(
-                  fontFamily: '.SF Pro Text',
                   fontSize: 14,
-                  color: CupertinoColors.systemGrey,
+                  color: Colors.grey[600],
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 _formatDate(_currentTime),
-                style: TextStyle(
-                  fontFamily: '.SF Pro Display',
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: CupertinoColors.black,
+                  color: Color(0xFF444444),
                 ),
               ),
             ],
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 10,
+            ),
             decoration: BoxDecoration(
               color: const Color(0xFFE3F553),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               _formatTime(_currentTime),
-              style: TextStyle(
-                fontFamily: '.SF Pro Display',
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFF444444),
+                color: Color(0xFF444444),
               ),
             ),
           ),
@@ -370,8 +474,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // iOS-style Stat Card
-  Widget _buildIOSStatCard({
+  // Stat Card
+  Widget _buildStatCard({
     required IconData icon,
     required Color iconColor,
     required String count,
@@ -381,16 +485,15 @@ class _HomeScreenState extends State<HomeScreen> {
     required String uptime,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: CupertinoColors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: CupertinoColors.systemGrey5,
-            blurRadius: 10,
-            spreadRadius: 0,
-            offset: const Offset(0, 2),
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 5,
           ),
         ],
       ),
@@ -401,7 +504,7 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: iconColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -409,11 +512,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Icon(
                   icon,
                   color: iconColor,
-                  size: 20,
+                  size: 24,
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: changeColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -421,7 +527,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Text(
                   change,
                   style: TextStyle(
-                    fontFamily: '.SF Pro Text',
                     color: changeColor,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -433,29 +538,26 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 16),
           Text(
             count,
-            style: TextStyle(
-              fontFamily: '.SF Pro Display',
+            style: const TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
-              color: CupertinoColors.black,
+              color: Color(0xFF444444),
             ),
           ),
           Text(
             label,
             style: TextStyle(
-              fontFamily: '.SF Pro Text',
               fontSize: 14,
-              color: CupertinoColors.systemGrey,
+              color: Colors.grey[600],
             ),
           ),
           const SizedBox(height: 8),
           Text(
             uptime,
             style: TextStyle(
-              fontFamily: '.SF Pro Text',
               fontSize: 12,
-              color: changeColor,
               fontWeight: FontWeight.w500,
+              color: changeColor,
             ),
           ),
         ],
@@ -463,54 +565,62 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // iOS-style CCTV Preview Card
+  // CCTV Preview Card
   Widget _buildCCTVPreviewCard() {
-    return Container(
-      height: 200,
-      decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+    return GestureDetector(
+      onTap: () => context.push('/camera/1'),
+      child: Container(
+        height: 200,
+        decoration: BoxDecoration(
+          color: Colors.grey[300],
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFE3F553),
+            width: 3,
+          ),
+        ),
         child: Stack(
           children: [
-            Container(
-              width: double.infinity,
-              height: double.infinity,
-              color: CupertinoColors.systemGrey4,
-              child: const Center(
-                child: Icon(
-                  CupertinoIcons.videocam,
-                  size: 50,
-                  color: CupertinoColors.systemGrey,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(13),
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                color: Colors.grey[400],
+                child: const Center(
+                  child: Icon(
+                    Icons.videocam,
+                    size: 50,
+                    color: Colors.grey,
+                  ),
                 ),
               ),
             ),
-            // iOS-style overlay elements
             Positioned(
               top: 16,
               left: 16,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
-                  color: CupertinoColors.black.withOpacity(0.7),
+                  color: Colors.black.withOpacity(0.7),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      CupertinoIcons.videocam_fill,
-                      color: CupertinoColors.white,
-                      size: 14,
+                    Icon(
+                      Icons.videocam,
+                      color: Colors.white,
+                      size: 16,
                     ),
-                    const SizedBox(width: 4),
+                    SizedBox(width: 4),
                     Text(
                       'CCTV 1 - Indoor',
                       style: TextStyle(
-                        fontFamily: '.SF Pro Text',
-                        color: CupertinoColors.white,
+                        color: Colors.white,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
@@ -523,16 +633,18 @@ class _HomeScreenState extends State<HomeScreen> {
               top: 16,
               right: 16,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
-                  color: CupertinoColors.systemRed,
+                  color: Colors.red,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
+                child: const Text(
                   'Live',
                   style: TextStyle(
-                    fontFamily: '.SF Pro Text',
-                    color: CupertinoColors.white,
+                    color: Colors.white,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
@@ -545,19 +657,18 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // iOS-style CCTV Details Card
+  // CCTV Details Card
   Widget _buildCCTVDetailsCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: CupertinoColors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: CupertinoColors.systemGrey5,
-            blurRadius: 10,
-            spreadRadius: 0,
-            offset: const Offset(0, 2),
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 5,
           ),
         ],
       ),
@@ -567,13 +678,12 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              const Text(
                 'Main Store Area',
                 style: TextStyle(
-                  fontFamily: '.SF Pro Display',
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: CupertinoColors.black,
+                  color: Color(0xFF444444),
                 ),
               ),
               Row(
@@ -582,16 +692,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 8,
                     height: 8,
                     decoration: const BoxDecoration(
-                      color: CupertinoColors.activeGreen,
+                      color: Colors.green,
                       shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Text(
+                  const Text(
                     'Online (5h)',
                     style: TextStyle(
-                      fontFamily: '.SF Pro Text',
-                      color: CupertinoColors.activeGreen,
+                      color: Colors.green,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -601,11 +710,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             'Monitoring customer activity in aisle 3-5',
             style: TextStyle(
-              fontFamily: '.SF Pro Text',
-              color: CupertinoColors.systemGrey,
+              color: Colors.grey,
               fontSize: 14,
             ),
           ),
@@ -613,31 +721,28 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              const Text(
                 'Last motion detected: 2 min ago',
                 style: TextStyle(
-                  fontFamily: '.SF Pro Text',
-                  color: CupertinoColors.systemGrey,
+                  color: Colors.grey,
                   fontSize: 12,
                 ),
               ),
               Row(
                 children: [
-                  Text(
+                  const Text(
                     '4 people in view',
                     style: TextStyle(
-                      fontFamily: '.SF Pro Text',
-                      color: CupertinoColors.black,
+                      color: Color(0xFF444444),
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(width: 16),
-                  Text(
+                  const Text(
                     'Updated: 5s ago',
                     style: TextStyle(
-                      fontFamily: '.SF Pro Text',
-                      color: CupertinoColors.systemGrey,
+                      color: Colors.grey,
                       fontSize: 12,
                     ),
                   ),
@@ -649,61 +754,47 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             children: [
               Expanded(
-                child: CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () {},
-                  child: Container(
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE3F553),
-                      borderRadius: BorderRadius.circular(10),
+                child: ElevatedButton(
+                  onPressed: () => context.push('/camera/1'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE3F553),
+                    foregroundColor: const Color(0xFF444444),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            CupertinoIcons.eye,
-                            size: 16,
-                            color: Color(0xFF444444),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'View Details',
-                            style: TextStyle(
-                              fontFamily: '.SF Pro Text',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF444444),
-                            ),
-                          ),
-                        ],
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.visibility, size: 16),
+                      SizedBox(width: 8),
+                      Text(
+                        'View Details',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: CupertinoButton(
-                  padding: EdgeInsets.zero,
+                child: ElevatedButton(
                   onPressed: () {},
-                  child: Container(
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: CupertinoColors.systemGrey6,
-                      borderRadius: BorderRadius.circular(10),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    foregroundColor: const Color(0xFF444444),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Center(
-                      child: Text(
-                        'All Cameras',
-                        style: TextStyle(
-                          fontFamily: '.SF Pro Text',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: CupertinoColors.black,
-                        ),
-                      ),
+                  ),
+                  child: const Text(
+                    'All Cameras',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -711,103 +802,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  // iOS-style Quick Actions Grid
-  Widget _buildQuickActionsGrid() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildIOSQuickActionItem(
-                icon: CupertinoIcons.videocam_fill,
-                label: 'View CCTVs',
-                onTap: () {},
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildIOSQuickActionItem(
-                icon: CupertinoIcons.doc_text_fill,
-                label: 'Reports',
-                onTap: () {},
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildIOSQuickActionItem(
-                icon: CupertinoIcons.add,
-                label: 'Add CCTV',
-                onTap: () {},
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _buildIOSQuickActionItem(
-          icon: CupertinoIcons.plus_rectangle_fill,
-          label: 'Add New Report',
-          onTap: () {},
-          isWide: true,
-        ),
-      ],
-    );
-  }
-
-  // iOS-style Quick Action Item
-  Widget _buildIOSQuickActionItem({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    bool isWide = false,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: isWide ? 200 : null,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: CupertinoColors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: CupertinoColors.systemGrey5,
-              blurRadius: 10,
-              spreadRadius: 0,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE3F553),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                color: const Color(0xFF444444),
-                size: 24,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: '.SF Pro Text',
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: CupertinoColors.black,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
       ),
     );
   }

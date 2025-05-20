@@ -3,6 +3,8 @@ import '../layouts/main_layout.dart';
 import 'home_screen.dart';
 import 'camera_screen.dart';
 import 'reports_screen.dart';
+import 'profile_screen.dart';
+
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -16,9 +18,9 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = [
     const HomeScreen(),
-    const CameraScreen(),
+    const CamerasScreen(), 
     const ReportsScreen(), // Added Reports Screen
-    const Center(child: Text('Profile Screen')), // Placeholder
+    const ProfileScreen(), // Added Profile Screen
   ];
 
   final List<String> _titles = [
