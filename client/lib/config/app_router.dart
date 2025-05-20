@@ -3,6 +3,8 @@ import '../screens/splash_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/register_screen.dart';
 import '../screens/main_screen.dart';
+import '../screens/camera_screen.dart';
+import '../screens/reports_screen.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -27,6 +29,18 @@ class AppRouter {
         path: '/main',
         name: 'main',
         builder: (context, state) => const MainScreen(),
+      ),
+      // Direct route to camera screen
+      GoRoute(
+        path: '/camera',
+        name: 'camera',
+        builder: (context, state) => const CameraScreen(),
+      ),
+      // Direct route to reports screen
+      GoRoute(
+        path: '/reports',
+        name: 'reports',
+        builder: (context, state) => const ReportsScreen(),
       ),
     ],
   );

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../layouts/main_layout.dart';
 import 'home_screen.dart';
+import 'camera_screen.dart';
+import 'reports_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -14,15 +16,15 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = [
     const HomeScreen(),
-    const Center(child: Text('Camera Screen')), // Placeholder
-    const Center(child: Text('Reports Screen')), // Placeholder
+    const CameraScreen(),
+    const ReportsScreen(), // Added Reports Screen
     const Center(child: Text('Profile Screen')), // Placeholder
   ];
 
   final List<String> _titles = [
     'Dashboard',
-    'Cameras',
-    'Reports',
+    'Live CCTV',
+    'Riwayat Laporan', // Updated title
     'Profile',
   ];
 
