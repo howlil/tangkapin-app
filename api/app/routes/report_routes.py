@@ -1,54 +1,53 @@
-from flask import Blueprint
-from app.controllers.reports import (
-    get_all_reports,
-    get_report,
-    create_new_report,
-    update_report_status_endpoint,
-    update_report_priority_endpoint,
-    add_evidence_endpoint,
-    get_report_timeline_endpoint
-)
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.controllers.report_controller import ReportController
+from app.middleware.auth_middleware import admin_required, officer_required
 
-report_bp = Blueprint('reports', __name__)
+# Create blueprint
+reports_bp = Blueprint('reports', __name__)
 
-# Get all reports (filtered by role)
-@report_bp.route('', methods=['GET'])
-def get_reports_route():
-    """Get all reports (filtered by role)."""
-    return get_all_reports()
+@reports_bp.route('', methods=['GET'])
+@jwt_required()
+def get_reports():
+    """Get all reports"""
+    user_id = get_jwt_identity()
+    status = request.args.get('status')
+    
+    response, status_code = ReportController.get_all_reports(user_id, status)
+    return jsonify(response), status_code
 
-# Get a specific report
-@report_bp.route('/<report_id>', methods=['GET'])
-def get_report_route(report_id):
-    """Get a report by ID."""
-    return get_report(report_id)
+@reports_bp.route('/<report_id>', methods=['GET'])
+@jwt_required()
+def get_report(report_id):
+    """Get report by ID"""
+    response, status_code = ReportController.get_report_by_id(report_id)
+    return jsonify(response), status_code
 
-# Create a new report
-@report_bp.route('', methods=['POST'])
-def create_report_route():
-    """Create a new report."""
-    return create_new_report()
+@reports_bp.route('', methods=['POST'])
+@jwt_required()
+def create_report():
+    """Create a new report"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    response, status_code = ReportController.create_report(data, user_id)
+    return jsonify(response), status_code
 
-# Update report status
-@report_bp.route('/<report_id>/status', methods=['PUT'])
-def update_status_route(report_id):
-    """Update a report's status."""
-    return update_report_status_endpoint(report_id)
+@reports_bp.route('/<report_id>', methods=['PUT'])
+@jwt_required()
+def update_report(report_id):
+    """Update report"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    response, status_code = ReportController.update_report(report_id, data, user_id)
+    return jsonify(response), status_code
 
-# Update report priority
-@report_bp.route('/<report_id>/priority', methods=['PUT'])
-def update_priority_route(report_id):
-    """Update a report's priority."""
-    return update_report_priority_endpoint(report_id)
-
-# Add evidence to a report
-@report_bp.route('/<report_id>/evidence', methods=['POST'])
-def add_evidence_route(report_id):
-    """Add evidence to a report."""
-    return add_evidence_endpoint(report_id)
-
-# Get report timeline
-@report_bp.route('/<report_id>/timeline', methods=['GET'])
-def get_timeline_route(report_id):
-    """Get the timeline for a report."""
-    return get_report_timeline_endpoint(report_id) 
+@reports_bp.route('/<report_id>', methods=['DELETE'])
+@jwt_required()
+def delete_report(report_id):
+    """Delete report"""
+    user_id = get_jwt_identity()
+    
+    response, status_code = ReportController.delete_report(report_id, user_id)
+    return jsonify(response), status_code 

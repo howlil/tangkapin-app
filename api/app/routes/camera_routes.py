@@ -1,54 +1,66 @@
-from flask import Blueprint
-from app.controllers.cameras import (
-    get_all_cameras,
-    get_camera,
-    create_new_camera,
-    update_camera_details,
-    update_camera_status_endpoint,
-    delete_camera_endpoint,
-    get_camera_stream
-)
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.controllers.camera_controller import CameraController
+from app.middleware.auth_middleware import admin_required, owner_required
 
-camera_bp = Blueprint('cameras', __name__)
+# Create blueprint
+cameras_bp = Blueprint('cameras', __name__)
 
-# Get all cameras (filtered by role)
-@camera_bp.route('', methods=['GET'])
-def get_cameras_route():
-    """Get all cameras (filtered by role)."""
-    return get_all_cameras()
+@cameras_bp.route('', methods=['GET'])
+@jwt_required()
+def get_cameras():
+    """Get all cameras, filtered by user if specified"""
+    user_id = get_jwt_identity()
+    active_only = request.args.get('active_only', 'true').lower() == 'true'
+    
+    response, status_code = CameraController.get_all_cameras(user_id, active_only)
+    return jsonify(response), status_code
 
-# Get a specific camera
-@camera_bp.route('/<camera_id>', methods=['GET'])
-def get_camera_route(camera_id):
-    """Get a camera by ID."""
-    return get_camera(camera_id)
+@cameras_bp.route('/<camera_id>', methods=['GET'])
+@jwt_required()
+def get_camera(camera_id):
+    """Get a specific camera by ID"""
+    response, status_code = CameraController.get_camera_by_id(camera_id)
+    return jsonify(response), status_code
 
-# Create a new camera
-@camera_bp.route('', methods=['POST'])
-def create_camera_route():
-    """Create a new camera."""
-    return create_new_camera()
+@cameras_bp.route('', methods=['POST'])
+@jwt_required()
+def create_camera():
+    """Create a new camera"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    response, status_code = CameraController.create_camera(data, user_id)
+    return jsonify(response), status_code
 
-# Update a camera
-@camera_bp.route('/<camera_id>', methods=['PUT'])
-def update_camera_route(camera_id):
-    """Update a camera."""
-    return update_camera_details(camera_id)
+@cameras_bp.route('/<camera_id>', methods=['PUT'])
+@jwt_required()
+def update_camera(camera_id):
+    """Update a camera"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    response, status_code = CameraController.update_camera(camera_id, data, user_id)
+    return jsonify(response), status_code
 
-# Update camera status
-@camera_bp.route('/<camera_id>/status', methods=['PUT'])
-def update_status_route(camera_id):
-    """Update a camera's status."""
-    return update_camera_status_endpoint(camera_id)
+@cameras_bp.route('/<camera_id>', methods=['DELETE'])
+@jwt_required()
+def delete_camera(camera_id):
+    """Delete a camera"""
+    user_id = get_jwt_identity()
+    
+    response, status_code = CameraController.delete_camera(camera_id, user_id)
+    return jsonify(response), status_code
 
-# Delete a camera
-@camera_bp.route('/<camera_id>', methods=['DELETE'])
-def delete_camera_route(camera_id):
-    """Delete a camera."""
-    return delete_camera_endpoint(camera_id)
-
-# Get secure stream URL
-@camera_bp.route('/<camera_id>/stream', methods=['GET'])
-def get_stream_route(camera_id):
-    """Get a secure stream URL for the camera."""
-    return get_camera_stream(camera_id) 
+@cameras_bp.route('/<camera_id>/status', methods=['PUT'])
+@jwt_required()
+def update_camera_status(camera_id):
+    """Update camera status"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    if not data or 'status' not in data:
+        return jsonify({'error': 'Status diperlukan'}), 400
+        
+    response, status_code = CameraController.update_camera_status(camera_id, data['status'], user_id)
+    return jsonify(response), status_code 

@@ -1,13 +1,16 @@
-from app import jwt
-from app.services.auth_service import is_token_blacklisted, get_user_by_id
+"""
+Middleware module for handling cross-cutting concerns.
+"""
 
-@jwt.token_in_blocklist_loader
-def check_if_token_in_blacklist(jwt_header, jwt_payload):
-    """Check if token is blacklisted."""
-    return is_token_blacklisted(jwt_payload)
-
-@jwt.user_lookup_loader
-def user_lookup_callback(_jwt_header, jwt_data):
-    """Load user from database when JWT token is used."""
-    identity = jwt_data["sub"]
-    return get_user_by_id(identity) 
+def register_middleware(app):
+    """Register all middleware with the Flask app"""
+    from app.middleware.auth_middleware import jwt_middleware
+    from app.middleware.error_middleware import error_handlers
+    from app.middleware.request_middleware import request_handlers
+    
+    # Register middleware
+    jwt_middleware(app)
+    error_handlers(app)
+    request_handlers(app)
+    
+    app.logger.info('All middleware registered successfully') 
