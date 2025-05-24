@@ -23,13 +23,12 @@ class Config:
     SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
     SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY')  # For storage operations
     
-    # Supabase Storage Configuration
-    SUPABASE_STORAGE_BUCKET = 'tangkapin-files'  # Main bucket
-    DETECTION_IMAGES_BUCKET = 'detection-images'  # Detection images bucket
-    EVIDENCE_BUCKET = 'evidence-files'  # Evidence files bucket
+    SUPABASE_STORAGE_BUCKET = 'foto-maling'  
+    DETECTION_IMAGES_BUCKET = 'detection-images'  
+    EVIDENCE_BUCKET = 'evidence-files' 
     
     # ML Detection Configuration
-    ML_MODEL_PATH = os.path.join(os.getcwd(), 'ml_models', 'best.pt')
+    ML_MODEL_PATH = os.path.join(os.getcwd(),'app' 'ml_models', 'best.pt')
     DETECTION_CONFIDENCE_THRESHOLD = 0.7  # 70% confidence minimum
     
     # Notification Configuration

@@ -175,5 +175,4 @@ Flask Documentation: https://flask.palletsprojects.com/
 SQLAlchemy Documentation: https://docs.sqlalchemy.org/
 Flask-JWT-Extended Documentation: https://flask-jwt-extended.readthedocs.io/
 Pusher Documentation: https://pusher.com/docs/
-Firebase Cloud Messaging: https://firebase.google.com/docs/cloud-messaging
 Supabase Documentation: https://supabase.io/docs/
